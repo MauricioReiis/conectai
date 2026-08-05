@@ -64,7 +64,7 @@ export default function Home() {
   return (
     <div className="app-shell">
       <aside className={`sidebar ${mobileMenu ? "sidebar-open" : ""}`}>
-        <div className="brand"><span className="brand-mark"><MessageCircle /></span><span>ConversaFlow</span><button className="icon-button mobile-close" onClick={() => setMobileMenu(false)} aria-label="Fechar menu"><X /></button></div>
+        <div className="brand"><span className="brand-mark"><MessageCircle /></span><span>Conectaí</span><button className="icon-button mobile-close" onClick={() => setMobileMenu(false)} aria-label="Fechar menu"><X /></button></div>
         <div className="workspace"><span className="workspace-avatar">ES</span><div><strong>Estúdio Solar</strong><small>Plano crescimento</small></div><ChevronDown /></div>
         <nav className="primary-nav" aria-label="Navegação principal">
           <span className="nav-eyebrow">{role === "admin" ? "Administração" : "Operação"}</span>
@@ -85,7 +85,7 @@ export default function Home() {
       <div className="main-area">
         <header className="topbar">
           <button className="icon-button mobile-menu" onClick={() => setMobileMenu(true)} aria-label="Abrir menu"><Menu /></button>
-          <div className="mobile-brand"><span className="brand-mark"><MessageCircle /></span>ConversaFlow</div>
+          <div className="mobile-brand"><span className="brand-mark"><MessageCircle /></span>Conectaí</div>
           <label className="search-field"><Search /><input aria-label="Buscar" placeholder="Buscar conversas, contatos ou bots" /><kbd>⌘ K</kbd></label>
           <div className="top-actions">
             <button className="icon-button notification" aria-label="Notificações"><Bell /><i /></button>
@@ -115,16 +115,16 @@ function Login({ onLogin }: { onLogin: () => void }) {
   const [showPassword, setShowPassword] = useState(false);
   return <main className="login-page">
     <section className="login-showcase">
-      <div className="login-brand"><span className="brand-mark"><MessageCircle /></span>ConversaFlow</div>
+      <div className="login-brand"><span className="brand-mark"><MessageCircle /></span>Conectaí</div>
       <div className="showcase-copy"><span className="pill"><Sparkles />Atendimento inteligente</span><h1>Transforme conversas em resultados.</h1><p>Gerencie bots, campanhas e atendimentos do WhatsApp em uma plataforma simples e completa.</p><div className="quote"><p>“Nossa equipe ganhou agilidade e nunca mais perdeu uma conversa importante.”</p><span><strong>Ana Martins</strong> · Operações na Solar</span></div></div>
-      <small>© 2026 ConversaFlow</small>
+      <small>© 2026 Conectaí</small>
     </section>
     <section className="login-form-wrap">
       <form className="login-form" onSubmit={(event) => { event.preventDefault(); onLogin(); }}>
-        <div className="login-mobile-brand"><span className="brand-mark"><MessageCircle /></span>ConversaFlow</div>
+        <div className="login-mobile-brand"><span className="brand-mark"><MessageCircle /></span>Conectaí</div>
         <span className="login-icon"><LockKeyhole /></span><h2>Bem-vindo de volta</h2><p>Entre para acessar sua central de atendimento.</p>
-        <label>E-mail<input type="email" defaultValue="demo@conversaflow.com" required /></label>
-        <label>Senha<span className="password-wrap"><input type={showPassword ? "text" : "password"} defaultValue="conversaflow" required /><button type="button" onClick={() => setShowPassword(!showPassword)}>{showPassword ? "Ocultar" : "Mostrar"}</button></span></label>
+        <label>E-mail<input type="email" defaultValue="demo@conectai.app" required /></label>
+        <label>Senha<span className="password-wrap"><input type={showPassword ? "text" : "password"} defaultValue="conectai" required /><button type="button" onClick={() => setShowPassword(!showPassword)}>{showPassword ? "Ocultar" : "Mostrar"}</button></span></label>
         <div className="login-options"><label><input type="checkbox" defaultChecked />Lembrar de mim</label><button type="button">Esqueci minha senha</button></div>
         <button className="login-submit" type="submit">Entrar na plataforma</button>
         <small>Este é um protótipo. Use os dados preenchidos para entrar.</small>

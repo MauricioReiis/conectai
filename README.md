@@ -1,4 +1,4 @@
-# ConversaFlow
+# Conectaí
 
 Protótipo responsivo de uma plataforma para gestão de bots, campanhas, contatos e atendimento via WhatsApp.
 
