@@ -47,3 +47,16 @@ html{font-size:16px}.app-shell{grid-template-columns:260px minmax(0,1fr)}
 .app-shell[data-theme="dark"] .table-header,.app-shell[data-theme="dark"] .feature-toolbar{background:#141d19}.app-shell[data-theme="dark"] .contact-row,.app-shell[data-theme="dark"] .conversation-scroll>button,.app-shell[data-theme="dark"] .detail-section,.app-shell[data-theme="dark"] .profile,.app-shell[data-theme="dark"] .queue-row,.app-shell[data-theme="dark"] .operation>div{border-color:var(--theme-border)}
 .app-shell[data-theme="dark"] .muted,.app-shell[data-theme="dark"] small,.app-shell[data-theme="dark"] p,.app-shell[data-theme="dark"] time{color:var(--theme-muted)}.app-shell[data-theme="dark"] .icon-btn{color:#a9b7b0}.app-shell[data-theme="dark"] .icon-btn:hover{background:var(--surface-3);color:#fff}.app-shell[data-theme="dark"] .status-pill.active,.app-shell[data-theme="dark"] .channel.bot{background:#173d31;color:#75d9b3}.app-shell[data-theme="dark"] .top-avatar,.app-shell[data-theme="dark"] .avatar,.app-shell[data-theme="dark"] .workspace>span{background:#203c31;color:#75d9b3}
 @media(max-width:760px){.content.conversation-content{height:calc(100dvh - 62px)}.theme-toggle{width:36px;height:36px}}
+.topbar-spacer{flex:1}
+.demo-access{display:grid;gap:8px;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+.demo-access>span{font-size:11px;font-weight:700;color:var(--muted);text-align:center}
+.demo-access>button{display:flex;align-items:center;gap:10px;width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;background:#f9fbfa;text-align:left;color:var(--ink)}
+.demo-access>button:hover{border-color:var(--green);background:var(--soft)}
+.demo-access b{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--soft);color:var(--green);font-size:11px}
+.demo-access button>span{display:grid;gap:2px}.demo-access strong{font-size:12px}.demo-access small{font-size:10px;color:var(--muted)}
+.permission-badge{display:inline-flex;align-items:center;gap:7px;padding:8px 11px;border:1px solid var(--line);border-radius:9px;color:var(--muted);font-size:12px;font-weight:650}.permission-badge svg{width:16px}
+.switch.disabled{opacity:.55;cursor:not-allowed}.secondary:disabled{opacity:.65;cursor:not-allowed}
+.app-shell[data-theme="dark"] .bot-banner{background:linear-gradient(90deg,#173228,#182620);border-color:#315747;color:var(--theme-text)}
+.app-shell[data-theme="dark"] .bot-banner p{color:var(--theme-muted)}
+.app-shell[data-theme="dark"] .add-card{background:#141d19;border-color:#496057;color:var(--theme-muted)}
+.app-shell[data-theme="dark"] .permission-badge{border-color:var(--theme-border);color:var(--theme-muted)}
