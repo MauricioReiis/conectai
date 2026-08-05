@@ -1,164 +1,85 @@
 "use client";
 
-import { useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import {
-  Activity, Bell, Bot, ChartNoAxesCombined, CheckCircle2, ChevronDown,
-  CircleHelp, ContactRound, FileText, Headphones, LayoutDashboard, LockKeyhole,
-  LogOut, Menu, MessageCircle, MessagesSquare, MoreHorizontal, Plus, Search,
-  Send, Settings, ShieldCheck, Sparkles, Users, WandSparkles, X
+  Activity, Bell, Bot, Building2, CalendarClock, Check, CheckCircle2, ChevronDown,
+  ChevronLeft, CircleHelp, Clock3, ContactRound, Eye, EyeOff, FileText, Filter,
+  LayoutDashboard, LockKeyhole, LogOut, Mail, Menu, MessageCircle, MessagesSquare,
+  MoreHorizontal, Paperclip, Pencil, Phone, Plus, Search, Send, Settings, ShieldCheck,
+  Smile, Sparkles, Tag, UserCheck, Users, WandSparkles, X
 } from "lucide-react";
 
-type Role = "user" | "admin";
-type PageKey = "overview" | "conversations" | "bots" | "campaigns" | "contacts" | "reports" | "support" | "admin" | "settings";
+type PageKey = "overview" | "conversations" | "contacts" | "bots" | "team" | "business" | "settings";
+type Conversation = { id:number; name:string; initials:string; message:string; time:string; unread:number; status:"bot"|"waiting"|"human"; phone:string; tags:string[] };
+type ChatMessage = { id:number; from:"client"|"bot"|"agent"; text:string; time:string };
 
-const userNavigation = [
-  ["overview", "Visão geral", LayoutDashboard], ["conversations", "Conversas", MessagesSquare],
-  ["bots", "Bots e fluxos", Bot], ["campaigns", "Campanhas", Send],
-  ["contacts", "Contatos", ContactRound], ["reports", "Relatórios", ChartNoAxesCombined],
-] as const;
-const adminNavigation = [
-  ["overview", "Visão geral", LayoutDashboard], ["admin", "Clientes e equipe", Users],
-  ["bots", "Monitoramento", Activity], ["support", "Central de suporte", Headphones],
-  ["reports", "Relatórios", ChartNoAxesCombined], ["settings", "Configurações", Settings],
+const nav = [
+  ["overview","Visão geral",LayoutDashboard], ["conversations","Conversas",MessagesSquare],
+  ["contacts","Contatos",ContactRound], ["bots","Automação",Bot],
+  ["team","Equipe e acessos",Users], ["business","Estabelecimento",Building2],
 ] as const;
 
-const pageCopy: Record<PageKey, [string, string]> = {
-  overview: ["Visão geral", "Acompanhe os resultados e a saúde da sua operação."],
-  conversations: ["Conversas", "Atenda clientes e acompanhe o trabalho dos bots."],
-  bots: ["Bots e fluxos", "Crie, organize e monitore suas automações."],
-  campaigns: ["Campanhas", "Planeje e acompanhe seus envios pelo WhatsApp."],
-  contacts: ["Contatos", "Organize seus contatos, listas e segmentos."],
-  reports: ["Relatórios", "Entenda o desempenho da sua operação."],
-  support: ["Central de suporte", "Acompanhe solicitações e ajude seus clientes."],
-  admin: ["Clientes e equipe", "Gerencie contas, acessos e permissões."],
-  settings: ["Configurações", "Gerencie canais, integrações e preferências."],
-};
-
-const bots = [
-  { name: "Atendimento inicial", icon: MessageCircle, channel: "+55 11 99999-9080", volume: "638", status: "Ativo", time: "há 12 min" },
-  { name: "Recuperação de vendas", icon: Sparkles, channel: "+55 11 99999-9080", volume: "402", status: "Ativo", time: "ontem" },
-  { name: "Confirmação de agenda", icon: CheckCircle2, channel: "+55 21 98888-1042", volume: "244", status: "Pausado", time: "há 3 dias" },
+const initialConversations: Conversation[] = [
+  {id:1,name:"Mariana Souza",initials:"MS",message:"Quero agendar um horário amanhã",time:"10:42",unread:2,status:"waiting",phone:"+55 11 99842-1260",tags:["Agendamento","Novo cliente"]},
+  {id:2,name:"Lucas Martins",initials:"LM",message:"Qual o valor do corte e barba?",time:"10:36",unread:0,status:"bot",phone:"+55 11 98920-4431",tags:["Serviços"]},
+  {id:3,name:"Carla Oliveira",initials:"CO",message:"Perfeito, muito obrigada!",time:"09:58",unread:0,status:"human",phone:"+55 11 97731-6804",tags:["Cliente recorrente"]},
+  {id:4,name:"Rafael Lima",initials:"RL",message:"Vocês abrem no domingo?",time:"Ontem",unread:1,status:"bot",phone:"+55 11 99104-3370",tags:["Horários"]},
+  {id:5,name:"Ana Beatriz",initials:"AB",message:"Gostaria de remarcar",time:"Ontem",unread:0,status:"waiting",phone:"+55 11 96552-0198",tags:["Agendamento"]},
 ];
 
-export default function Home() {
-  const [signedIn, setSignedIn] = useState(false);
-  const [role, setRole] = useState<Role>("user");
-  const [page, setPage] = useState<PageKey>("overview");
-  const [mobileMenu, setMobileMenu] = useState(false);
-  const [toast, setToast] = useState("");
+const initialMessages: Record<number,ChatMessage[]> = {
+  1:[{id:1,from:"client",text:"Olá, bom dia!",time:"10:39"},{id:2,from:"bot",text:"Olá, Mariana! Bem-vinda à Barbearia Central. Como podemos ajudar?\n\n1. Agendar horário\n2. Serviços e preços\n3. Horário de funcionamento\n4. Falar com atendente",time:"10:39"},{id:3,from:"client",text:"Quero agendar um horário amanhã",time:"10:42"}],
+  2:[{id:1,from:"client",text:"Qual o valor do corte e barba?",time:"10:36"},{id:2,from:"bot",text:"O combo corte + barba custa R$ 65. Deseja consultar horários disponíveis?",time:"10:36"}],
+  3:[{id:1,from:"agent",text:"Seu horário está confirmado para hoje às 16h.",time:"09:55"},{id:2,from:"client",text:"Perfeito, muito obrigada!",time:"09:58"}],
+  4:[{id:1,from:"client",text:"Vocês abrem no domingo?",time:"Ontem"},{id:2,from:"bot",text:"Aos domingos atendemos das 9h às 13h.",time:"Ontem"}],
+  5:[{id:1,from:"client",text:"Gostaria de remarcar",time:"Ontem"}],
+};
 
-  function action(message: string) {
-    setToast(message);
-    window.setTimeout(() => setToast(""), 2600);
-  }
-
-  if (!signedIn) return <Login onLogin={() => setSignedIn(true)} />;
-
-  const navigation = role === "admin" ? adminNavigation : userNavigation;
-  const [title, subtitle] = pageCopy[page];
-
-  function navigate(next: PageKey) {
-    setPage(next); setMobileMenu(false);
-  }
-
-  return (
-    <div className="app-shell">
-      <aside className={`sidebar ${mobileMenu ? "sidebar-open" : ""}`}>
-        <div className="brand"><span className="brand-mark"><MessageCircle /></span><span>Conectaí</span><button className="icon-button mobile-close" onClick={() => setMobileMenu(false)} aria-label="Fechar menu"><X /></button></div>
-        <div className="workspace"><span className="workspace-avatar">ES</span><div><strong>Estúdio Solar</strong><small>Plano crescimento</small></div><ChevronDown /></div>
-        <nav className="primary-nav" aria-label="Navegação principal">
-          <span className="nav-eyebrow">{role === "admin" ? "Administração" : "Operação"}</span>
-          {navigation.map(([key, label, Icon]) => <button key={key} onClick={() => navigate(key)} className={page === key ? "active" : ""}><Icon /><span>{label}</span>{key === "conversations" && <em>8</em>}</button>)}
-        </nav>
-        <nav className="secondary-nav">
-          {role === "user" && <button onClick={() => navigate("support")}><CircleHelp /><span>Ajuda e suporte</span></button>}
-          {role === "user" && <button onClick={() => navigate("settings")}><Settings /><span>Configurações</span></button>}
-        </nav>
-        <div className="profile-card">
-          <span className="avatar">MR</span><div><strong>Maurício Reis</strong><small>{role === "admin" ? "Administrador" : "Gestor da conta"}</small></div>
-          <button className="icon-button" aria-label="Sair" onClick={() => setSignedIn(false)}><LogOut /></button>
-        </div>
-      </aside>
-
-      {mobileMenu && <button className="backdrop" aria-label="Fechar menu" onClick={() => setMobileMenu(false)} />}
-
-      <div className="main-area">
-        <header className="topbar">
-          <button className="icon-button mobile-menu" onClick={() => setMobileMenu(true)} aria-label="Abrir menu"><Menu /></button>
-          <div className="mobile-brand"><span className="brand-mark"><MessageCircle /></span>Conectaí</div>
-          <label className="search-field"><Search /><input aria-label="Buscar" placeholder="Buscar conversas, contatos ou bots" /><kbd>⌘ K</kbd></label>
-          <div className="top-actions">
-            <button className="icon-button notification" aria-label="Notificações"><Bell /><i /></button>
-            <button className="role-switch" onClick={() => { setRole(role === "user" ? "admin" : "user"); setPage("overview"); }}><ShieldCheck /><span>{role === "user" ? "Modo usuário" : "Modo admin"}</span><ChevronDown /></button>
-          </div>
-        </header>
-
-        <main className="content">
-          <div className="page-heading">
-            <div><span className="mobile-eyebrow">{role === "admin" ? "Administração" : "Operação"}</span><h1>{title}</h1><p>{subtitle}</p></div>
-            {page === "overview" && <button className="primary-button" onClick={() => action("Nova campanha iniciada")}><Plus />Criar campanha</button>}
-          </div>
-          {page === "overview" ? <Overview role={role} onNavigate={navigate} onAction={action} /> : <FeaturePage page={page} onAction={action} />}
-        </main>
-
-        <nav className="bottom-nav" aria-label="Navegação mobile">
-          {(role === "user" ? userNavigation.slice(0, 4) : adminNavigation.slice(0, 4)).map(([key, label, Icon]) => <button key={key} onClick={() => navigate(key)} className={page === key ? "active" : ""}><Icon /><span>{label.split(" ")[0]}</span></button>)}
-          <button onClick={() => setMobileMenu(true)}><Menu /><span>Mais</span></button>
-        </nav>
-      </div>
-      {toast && <div className="toast"><CheckCircle2 />{toast}</div>}
-    </div>
-  );
-}
-
-function Login({ onLogin }: { onLogin: () => void }) {
-  const [showPassword, setShowPassword] = useState(false);
-  return <main className="login-page">
-    <section className="login-showcase">
-      <div className="login-brand"><span className="brand-mark"><MessageCircle /></span>Conectaí</div>
-      <div className="showcase-copy"><span className="pill"><Sparkles />Atendimento inteligente</span><h1>Transforme conversas em resultados.</h1><p>Gerencie bots, campanhas e atendimentos do WhatsApp em uma plataforma simples e completa.</p><div className="quote"><p>“Nossa equipe ganhou agilidade e nunca mais perdeu uma conversa importante.”</p><span><strong>Ana Martins</strong> · Operações na Solar</span></div></div>
-      <small>© 2026 Conectaí</small>
+export default function Home(){
+  const [signedIn,setSignedIn]=useState(false); const [page,setPage]=useState<PageKey>("overview");
+  const [mobileMenu,setMobileMenu]=useState(false); const [toast,setToast]=useState("");
+  const [conversations,setConversations]=useState(initialConversations); const [messages,setMessages]=useState(initialMessages);
+  const [selectedId,setSelectedId]=useState(1); const [editorOpen,setEditorOpen]=useState(false);
+  const selected=conversations.find(c=>c.id===selectedId)!;
+  function notify(text:string){setToast(text);setTimeout(()=>setToast(""),2400)}
+  function navigate(key:PageKey){setPage(key);setMobileMenu(false)}
+  function takeConversation(){setConversations(v=>v.map(c=>c.id===selectedId?{...c,status:"human",unread:0}:c));notify("Atendimento assumido por você")}
+  function sendMessage(text:string){const clean=text.trim();if(!clean)return;setMessages(v=>({...v,[selectedId]:[...(v[selectedId]||[]),{id:Date.now(),from:"agent",text:clean,time:"Agora"}]}));setConversations(v=>v.map(c=>c.id===selectedId?{...c,message:clean,time:"Agora",status:"human"}:c))}
+  if(!signedIn)return <Login onLogin={()=>setSignedIn(true)}/>;
+  return <div className="app-shell">
+    <aside className={`sidebar ${mobileMenu?"sidebar-open":""}`}>
+      <div className="brand"><span className="brand-mark"><MessageCircle/></span>Conectaí<button className="icon-btn mobile-close" onClick={()=>setMobileMenu(false)} aria-label="Fechar menu"><X/></button></div>
+      <button className="workspace"><span>BC</span><div><strong>Barbearia Central</strong><small>Atendimento ativo</small></div><ChevronDown/></button>
+      <nav><small>OPERAÇÃO</small>{nav.map(([key,label,Icon])=><button key={key} className={page===key?"active":""} onClick={()=>navigate(key)}><Icon/><span>{label}</span>{key==="conversations"&&<em>3</em>}</button>)}</nav>
+      <div className="side-bottom"><button onClick={()=>navigate("settings")} className={page==="settings"?"active":""}><Settings/>Configurações</button><button><CircleHelp/>Ajuda e suporte</button></div>
+      <div className="profile"><span>MR</span><div><strong>Maurício Reis</strong><small>Administrador</small></div><button className="icon-btn" onClick={()=>setSignedIn(false)} aria-label="Sair"><LogOut/></button></div>
+    </aside>
+    {mobileMenu&&<button className="backdrop" onClick={()=>setMobileMenu(false)} aria-label="Fechar menu"/>}
+    <section className="main-area">
+      <header className="topbar"><button className="icon-btn mobile-menu" onClick={()=>setMobileMenu(true)}><Menu/></button><label className="global-search"><Search/><input placeholder="Buscar na Conectaí"/><kbd>Ctrl K</kbd></label><div><button className="icon-btn bell"><Bell/><i/></button><span className="top-avatar">MR</span></div></header>
+      <main className={page==="conversations"?"content conversation-content":"content"}>
+        {page==="overview"&&<Overview onNavigate={navigate}/>} {page==="conversations"&&<Inbox conversations={conversations} selected={selected} messages={messages[selectedId]||[]} onSelect={id=>{setSelectedId(id);setConversations(v=>v.map(c=>c.id===id?{...c,unread:0}:c))}} onTake={takeConversation} onSend={sendMessage} onReturn={()=>{setConversations(v=>v.map(c=>c.id===selectedId?{...c,status:"bot"}:c));notify("Conversa devolvida ao bot")}}/>}
+        {page==="contacts"&&<Contacts onNotify={notify}/>} {page==="bots"&&<Bots onEdit={()=>setEditorOpen(true)} onNotify={notify}/>} {page==="team"&&<Team onNotify={notify}/>} {page==="business"&&<Business onNotify={notify}/>} {page==="settings"&&<SettingsPage onNotify={notify}/>} 
+      </main>
     </section>
-    <section className="login-form-wrap">
-      <form className="login-form" onSubmit={(event) => { event.preventDefault(); onLogin(); }}>
-        <div className="login-mobile-brand"><span className="brand-mark"><MessageCircle /></span>Conectaí</div>
-        <span className="login-icon"><LockKeyhole /></span><h2>Bem-vindo de volta</h2><p>Entre para acessar sua central de atendimento.</p>
-        <label>E-mail<input type="email" defaultValue="demo@conectai.app" required /></label>
-        <label>Senha<span className="password-wrap"><input type={showPassword ? "text" : "password"} defaultValue="conectai" required /><button type="button" onClick={() => setShowPassword(!showPassword)}>{showPassword ? "Ocultar" : "Mostrar"}</button></span></label>
-        <div className="login-options"><label><input type="checkbox" defaultChecked />Lembrar de mim</label><button type="button">Esqueci minha senha</button></div>
-        <button className="login-submit" type="submit">Entrar na plataforma</button>
-        <small>Este é um protótipo. Use os dados preenchidos para entrar.</small>
-      </form>
-    </section>
-  </main>;
+    {editorOpen&&<FlowEditor onClose={()=>setEditorOpen(false)} onSave={()=>{setEditorOpen(false);notify("Fluxo salvo com sucesso")}}/>}
+    {toast&&<div className="toast"><CheckCircle2/>{toast}</div>}
+  </div>
 }
 
-function Overview({ role, onNavigate, onAction }: { role: Role; onNavigate: (page: PageKey) => void; onAction: (message: string) => void }) {
-  if (role === "admin") return <AdminOverview onNavigate={onNavigate} />;
-  return <>
-    <section className="metrics-grid">
-      <Metric label="Conversas" value="1.284" change="12%" detail="vs. período anterior" positive icon={MessagesSquare} />
-      <Metric label="Taxa de resposta" value="92%" change="3,1%" detail="vs. período anterior" positive icon={Activity} />
-      <Metric label="Contatos ativos" value="8.420" change="346 novos" detail="neste período" positive icon={Users} />
-      <Metric label="Bots ativos" value="4 de 5" change="1 pausado" detail="requer atenção" icon={Bot} />
-    </section>
-    <section className="dashboard-grid">
-      <div className="panel performance-panel"><div className="panel-heading"><div><h2>Desempenho das conversas</h2><p>Volume diário nos últimos 7 dias</p></div><button>Últimos 7 dias <ChevronDown /></button></div><div className="chart" aria-label="Gráfico de volume de conversas"><div className="chart-labels"><span>600</span><span>450</span><span>300</span><span>150</span><span>0</span></div><div className="bars">{[45,62,50,76,61,88,70].map((height, index) => <div key={index} className="bar-slot"><span style={{height:`${height}%`}}/><small>{["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"][index]}</small></div>)}</div></div></div>
-      <div className="panel quick-panel"><div className="panel-heading"><div><h2>Ações rápidas</h2><p>Comece uma nova tarefa</p></div></div><div className="quick-actions"><button onClick={() => onAction("Editor de bot aberto")}><span><WandSparkles /></span><div><strong>Criar novo bot</strong><small>Configure um fluxo automático</small></div></button><button onClick={() => onAction("Importação de contatos iniciada")}><span><Users /></span><div><strong>Importar contatos</strong><small>Adicione sua base de clientes</small></div></button><button onClick={() => onAction("Novo template iniciado")}><span><FileText /></span><div><strong>Novo template</strong><small>Crie uma mensagem aprovada</small></div></button></div><div className="connection-status"><span><CheckCircle2 /></span><div><strong>WhatsApp conectado</strong><small>Sincronizado há 2 minutos</small></div></div></div>
-    </section>
-    <section className="panel bots-panel"><div className="panel-heading"><div><h2>Bots recentes</h2><p>Acompanhe suas automações mais utilizadas</p></div><button className="text-button" onClick={() => onNavigate("bots")}>Ver todos</button></div><div className="data-table"><div className="table-head"><span>Bot</span><span>Número conectado</span><span>Interações</span><span>Status</span><span>Atualização</span><span /></div>{bots.map(({name, icon: Icon, channel, volume, status, time}) => <div className="table-row" key={name}><span className="bot-name"><i><Icon /></i><strong>{name}</strong></span><span>{channel}</span><span><strong>{volume}</strong></span><span><em className={status === "Ativo" ? "status active" : "status paused"}>{status}</em></span><span className="muted">{time}</span><button className="icon-button" aria-label={`Mais opções para ${name}`}><MoreHorizontal /></button></div>)}</div></section>
-  </>;
-}
+function Login({onLogin}:{onLogin:()=>void}){const[show,setShow]=useState(false);return <main className="new-login"><div className="login-orb one"/><div className="login-orb two"/><form onSubmit={e=>{e.preventDefault();onLogin()}} className="center-login"><div className="login-brand"><span className="brand-mark"><MessageCircle/></span>Conectaí</div><div className="login-heading"><span><LockKeyhole/></span><h1>Bem-vindo de volta</h1><p>Entre para gerenciar seus atendimentos.</p></div><label>E-mail<div className="field"><Mail/><input type="email" defaultValue="demo@conectai.app" required/></div></label><label>Senha<div className="field"><LockKeyhole/><input type={show?"text":"password"} defaultValue="conectai" required/><button type="button" onClick={()=>setShow(!show)} aria-label="Mostrar senha">{show?<EyeOff/>:<Eye/>}</button></div></label><div className="login-row"><label><input type="checkbox" defaultChecked/>Lembrar de mim</label><button type="button">Esqueci minha senha</button></div><button className="primary wide" type="submit">Entrar na Conectaí</button><small>Ambiente demonstrativo · seus dados estão protegidos</small></form></main>}
 
-function Metric({ label, value, change, detail, positive, icon: Icon }: { label: string; value: string; change: string; detail: string; positive?: boolean; icon: typeof Bot }) {
-  return <article className="metric-card"><div className="metric-top"><span>{label}</span><i><Icon /></i></div><strong>{value}</strong><p className={positive ? "positive" : "attention"}>{change} <span>{detail}</span></p></article>;
-}
+function PageTitle({title,copy,action}:{title:string;copy:string;action?:React.ReactNode}){return <div className="page-title"><div><h1>{title}</h1><p>{copy}</p></div>{action}</div>}
+function Overview({onNavigate}:{onNavigate:(p:PageKey)=>void}){return <><PageTitle title="Bom dia, Maurício" copy="Aqui está o resumo do atendimento de hoje." action={<button className="primary" onClick={()=>onNavigate("conversations")}><MessagesSquare/>Abrir conversas</button>}/><div className="stats"><Stat label="Conversas hoje" value="48" note="12% a mais que ontem" icon={MessagesSquare}/><Stat label="Aguardando atendimento" value="3" note="Maior espera: 4 min" icon={Clock3} warn/><Stat label="Resolvidas pelo bot" value="76%" note="36 conversas" icon={Bot}/><Stat label="Tempo de resposta" value="1m 24s" note="Dentro da meta" icon={Activity}/></div><div className="overview-grid"><section className="card"><div className="card-head"><div><h2>Fila de atendimento</h2><p>Conversas que precisam da equipe</p></div><button onClick={()=>onNavigate("conversations")}>Ver todas</button></div>{initialConversations.filter(c=>c.status==="waiting").map(c=><div className="queue-row" key={c.id}><Avatar text={c.initials}/><div><strong>{c.name}</strong><small>{c.message}</small></div><span>{c.time}</span></div>)}</section><section className="card"><div className="card-head"><div><h2>Operação</h2><p>Status dos canais e automações</p></div></div><div className="operation"><div><span className="success-icon"><Check/></span><div><strong>WhatsApp conectado</strong><small>Sincronizado agora</small></div></div><div><span className="success-icon"><Bot/></span><div><strong>Bot de atendimento ativo</strong><small>76% das conversas resolvidas</small></div></div><button className="secondary" onClick={()=>onNavigate("bots")}>Gerenciar automação</button></div></section></div></>}
+function Stat({label,value,note,icon:Icon,warn}:{label:string;value:string;note:string;icon:typeof Bot;warn?:boolean}){return <article className="stat"><div><span>{label}</span><i className={warn?"warn":""}><Icon/></i></div><strong>{value}</strong><small>{note}</small></article>}
 
-function AdminOverview({ onNavigate }: { onNavigate: (page: PageKey) => void }) {
-  return <><section className="metrics-grid"><Metric label="Contas ativas" value="126" change="8 novas" detail="neste mês" positive icon={Users}/><Metric label="Bots operando" value="318" change="99,4%" detail="de disponibilidade" positive icon={Bot}/><Metric label="Tickets abertos" value="14" change="3 urgentes" detail="aguardando equipe" icon={Headphones}/><Metric label="Mensagens processadas" value="2,4 mi" change="18%" detail="vs. mês anterior" positive icon={Send}/></section><section className="dashboard-grid admin-grid"><div className="panel"><div className="panel-heading"><div><h2>Saúde da plataforma</h2><p>Serviços monitorados em tempo real</p></div><em className="status active">Operacional</em></div>{["API principal","Processamento de webhooks","Fila de mensagens","Banco de dados"].map((item, i)=><div className="health-row" key={item}><span><CheckCircle2 />{item}</span><strong>{["99,99%","99,97%","99,95%","100%"][i]}</strong></div>)}</div><div className="panel quick-panel"><div className="panel-heading"><div><h2>Administração</h2><p>Acessos mais utilizados</p></div></div><div className="quick-actions"><button onClick={()=>onNavigate("admin")}><span><Users/></span><div><strong>Gerenciar clientes</strong><small>Contas, planos e permissões</small></div></button><button onClick={()=>onNavigate("support")}><span><Headphones/></span><div><strong>Ver tickets</strong><small>14 solicitações abertas</small></div></button><button onClick={()=>onNavigate("reports")}><span><ChartNoAxesCombined/></span><div><strong>Relatório global</strong><small>Uso e desempenho</small></div></button></div></div></section></>;
-}
+function Inbox({conversations,selected,messages,onSelect,onTake,onSend,onReturn}:{conversations:Conversation[];selected:Conversation;messages:ChatMessage[];onSelect:(id:number)=>void;onTake:()=>void;onSend:(s:string)=>void;onReturn:()=>void}){const[text,setText]=useState("");const[details,setDetails]=useState(true);return <div className={`inbox ${details?"":"no-details"}`}><aside className="conversation-list"><div className="inbox-title"><div><h1>Conversas</h1><span>3 aguardando</span></div><button className="icon-btn"><MoreHorizontal/></button></div><label className="list-search"><Search/><input placeholder="Buscar conversas"/><button><Filter/></button></label><div className="inbox-tabs"><button className="active">Todas</button><button>Não lidas</button><button>Fila</button></div><div className="conversation-scroll">{conversations.map(c=><button key={c.id} onClick={()=>onSelect(c.id)} className={selected.id===c.id?"selected":""}><Avatar text={c.initials}/><div><div><strong>{c.name}</strong><time>{c.time}</time></div><p>{c.message}</p><span className={`channel ${c.status}`}>{c.status==="bot"?"Bot atendendo":c.status==="waiting"?"Aguardando equipe":"Atendimento humano"}</span></div>{c.unread>0&&<em>{c.unread}</em>}</button>)}</div></aside><section className="chat"><header><button className="icon-btn mobile-back"><ChevronLeft/></button><Avatar text={selected.initials}/><div><strong>{selected.name}</strong><small><i/> WhatsApp · {selected.status==="human"?"Atendimento humano":selected.status==="bot"?"Bot atendendo":"Na fila"}</small></div><div className="chat-actions">{selected.status!=="human"?<button className="primary" onClick={onTake}><UserCheck/>Assumir atendimento</button>:<button className="secondary" onClick={onReturn}><Bot/>Devolver ao bot</button>}<button className="icon-btn" onClick={()=>setDetails(!details)}><ContactRound/></button></div></header><div className="chat-messages"><div className="day-divider">Hoje</div>{messages.map(m=><div key={m.id} className={`bubble-wrap ${m.from}`}><div className="bubble">{m.from==="bot"&&<small><Bot/>Resposta automática</small>}<p>{m.text}</p><time>{m.time} {m.from!=="client"&&"✓✓"}</time></div></div>)}</div><form className="composer" onSubmit={(e:FormEvent)=>{e.preventDefault();onSend(text);setText("")}}><button type="button"><Paperclip/></button><input value={text} onChange={e=>setText(e.target.value)} placeholder={selected.status==="human"?"Digite uma mensagem":"Assuma o atendimento para responder"} disabled={selected.status!=="human"}/><button type="button"><Smile/></button><button className="send-btn" disabled={selected.status!=="human"}><Send/></button></form></section>{details&&<aside className="contact-panel"><div className="contact-main"><Avatar text={selected.initials}/><h3>{selected.name}</h3><p>{selected.phone}</p><span className="status-pill active">Cliente ativo</span></div><div className="detail-section"><h4>Informações</h4><p><Phone/> {selected.phone}</p><p><CalendarClock/>Cliente desde 03/08/2026</p></div><div className="detail-section"><h4>Tags <button>+ Adicionar</button></h4><div className="tags">{selected.tags.map(t=><span key={t}><Tag/>{t}</span>)}</div></div><div className="detail-section"><h4>Observações <button><Pencil/></button></h4><p className="note">Prefere atendimento no período da tarde.</p></div><button className="secondary full">Ver histórico completo</button></aside>}</div>}
 
-function FeaturePage({ page, onAction }: { page: PageKey; onAction: (message: string) => void }) {
-  const [title, subtitle] = pageCopy[page];
-  return <section className="feature-panel panel"><div className="feature-hero"><span><Bot /></span><div><h2>{title}</h2><p>{subtitle}</p></div><button className="primary-button" onClick={() => onAction(`Nova ação em ${title}`)}><Plus />Nova ação</button></div><div className="feature-toolbar"><label><Search/><input placeholder={`Buscar em ${title.toLowerCase()}`} /></label><button>Todos os status <ChevronDown/></button></div><div className="feature-list">{["Item principal","Automação de boas-vindas","Fluxo de acompanhamento","Configuração padrão"].map((item,index)=><article key={item}><span className="list-icon">{index+1}</span><div><strong>{item}</strong><small>Atualizado {index === 0 ? "há poucos minutos" : `há ${index + 1} dias`}</small></div><em className={index === 2 ? "status paused" : "status active"}>{index === 2 ? "Pausado" : "Ativo"}</em><button className="icon-button"><MoreHorizontal/></button></article>)}</div></section>;
-}
+function Contacts({onNotify}:{onNotify:(s:string)=>void}){const contacts=[...initialConversations,{id:6,name:"Fernanda Alves",initials:"FA",message:"Último atendimento há 8 dias",time:"",unread:0,status:"human" as const,phone:"+55 11 95551-2033",tags:["Cliente recorrente"]}];return <><PageTitle title="Contatos" copy="Gerencie clientes, tags e histórico de atendimento." action={<button className="primary" onClick={()=>onNotify("Novo contato aberto")}><Plus/>Novo contato</button>}/><section className="card table-card"><div className="toolbar"><label><Search/><input placeholder="Buscar por nome ou telefone"/></label><button className="secondary"><Filter/>Filtros</button></div><div className="contact-table"><div className="table-header"><span>Contato</span><span>Telefone</span><span>Tags</span><span>Última conversa</span><span/></div>{contacts.map((c,i)=><div className="contact-row" key={c.id}><div><Avatar text={c.initials}/><strong>{c.name}</strong></div><span>{c.phone}</span><div className="tags">{c.tags.slice(0,1).map(t=><span key={t}>{t}</span>)}</div><span>{i<3?"Hoje":i<5?"Ontem":"28/07/2026"}</span><button className="icon-btn"><MoreHorizontal/></button></div>)}</div></section></>}
+function Bots({onEdit,onNotify}:{onEdit:()=>void;onNotify:(s:string)=>void}){return <><PageTitle title="Automação" copy="Configure como o bot recebe e direciona seus clientes." action={<button className="primary" onClick={onEdit}><Plus/>Novo fluxo</button>}/><div className="bot-banner"><div><span><Sparkles/></span><div><strong>Automação ativa</strong><p>O bot está respondendo novos contatos e transfere para a equipe quando necessário.</p></div></div><label className="switch"><input type="checkbox" defaultChecked onChange={()=>onNotify("Status da automação atualizado")}/><span/></label></div><div className="bot-grid"><section className="card bot-card"><div className="bot-card-top"><span><MessageCircle/></span><em className="status-pill active">Ativo</em></div><h2>Atendimento principal</h2><p>Boas-vindas, serviços, horários e transferência para atendente.</p><div><small>8 etapas</small><small>Atualizado hoje</small></div><button className="secondary full" onClick={onEdit}><Pencil/>Editar fluxo</button></section><section className="card bot-card"><div className="bot-card-top"><span><Clock3/></span><em className="status-pill">Agendado</em></div><h2>Fora do expediente</h2><p>Informa horários e registra solicitações recebidas após o fechamento.</p><div><small>4 etapas</small><small>Atualizado ontem</small></div><button className="secondary full" onClick={onEdit}><Pencil/>Editar fluxo</button></section><button className="add-card" onClick={onEdit}><Plus/><strong>Criar novo fluxo</strong><span>Comece com um modelo em branco</span></button></div></>}
+function Team({onNotify}:{onNotify:(s:string)=>void}){const people=[["MR","Maurício Reis","mauricio@conectai.app","Administrador","Ativo"],["AM","Ana Martins","ana@barbearia.com","Atendente","Ativo"],["CS","Carlos Silva","carlos@barbearia.com","Atendente","Ativo"],["JP","João Pedro","joao@barbearia.com","Gestor","Convite enviado"]];return <><PageTitle title="Equipe e acessos" copy="Gerencie quem pode acessar o estabelecimento." action={<button className="primary" onClick={()=>onNotify("Convite de membro iniciado")}><Plus/>Convidar pessoa</button>}/><section className="card table-card"><div className="team-summary"><span><Users/></span><div><strong>4 pessoas na equipe</strong><p>1 convite aguardando confirmação</p></div></div><div className="contact-table"><div className="table-header team-columns"><span>Pessoa</span><span>Função</span><span>Status</span><span/></div>{people.map(p=><div className="contact-row team-columns" key={p[2]}><div><Avatar text={p[0]}/><span><strong>{p[1]}</strong><small>{p[2]}</small></span></div><span>{p[3]}</span><span className={p[4]==="Ativo"?"status-pill active":"status-pill"}>{p[4]}</span><button className="icon-btn"><MoreHorizontal/></button></div>)}</div></section></>}
+function Business({onNotify}:{onNotify:(s:string)=>void}){return <><PageTitle title="Estabelecimento" copy="Mantenha as informações usadas no atendimento atualizadas."/><form className="settings-grid" onSubmit={e=>{e.preventDefault();onNotify("Informações do estabelecimento salvas")}}><section className="card form-card"><div className="section-title"><Building2/><div><h2>Informações gerais</h2><p>Dados exibidos e utilizados pelo chatbot.</p></div></div><div className="form-grid"><Field label="Nome do estabelecimento" value="Barbearia Central"/><Field label="Segmento" value="Barbearia"/><Field label="Telefone" value="+55 11 99999-9080"/><Field label="Cidade" value="São Paulo - SP"/><label className="span-2">Endereço<input defaultValue="Rua das Flores, 123 - Centro"/></label></div></section><section className="card form-card"><div className="section-title"><Clock3/><div><h2>Horário de atendimento</h2><p>Define quando o fluxo principal fica ativo.</p></div></div>{[["Segunda a sexta","09:00","19:00"],["Sábado","09:00","17:00"],["Domingo","09:00","13:00"]].map(d=><div className="hours" key={d[0]}><label><input type="checkbox" defaultChecked/>{d[0]}</label><input defaultValue={d[1]}/><span>até</span><input defaultValue={d[2]}/></div>)}</section><section className="card form-card span-2"><div className="section-title"><MessageCircle/><div><h2>Mensagem fora do expediente</h2><p>Enviada automaticamente quando a equipe não estiver disponível.</p></div></div><textarea defaultValue="Olá! No momento estamos fora do horário de atendimento. Deixe sua mensagem e retornaremos assim que possível."/><div className="form-actions"><button className="primary">Salvar alterações</button></div></section></form></>}
+function Field({label,value}:{label:string;value:string}){return <label>{label}<input defaultValue={value}/></label>}
+function SettingsPage({onNotify}:{onNotify:(s:string)=>void}){return <><PageTitle title="Configurações" copy="Preferências da conta, notificações e canal conectado."/><div className="settings-layout"><aside className="settings-nav"><button className="active"><UserCheck/>Minha conta</button><button><Bell/>Notificações</button><button><ShieldCheck/>Segurança</button><button><MessageCircle/>Canal do WhatsApp</button></aside><section className="card form-card"><div className="section-title"><UserCheck/><div><h2>Minha conta</h2><p>Atualize suas informações pessoais.</p></div></div><div className="form-grid"><Field label="Nome" value="Maurício Reis"/><Field label="E-mail" value="mauricio@conectai.app"/><Field label="Telefone" value="+55 11 98888-4477"/><Field label="Função" value="Administrador"/></div><div className="form-actions"><button className="primary" onClick={()=>onNotify("Preferências salvas")}>Salvar alterações</button></div></section></div></>}
+function FlowEditor({onClose,onSave}:{onClose:()=>void;onSave:()=>void}){const[step,setStep]=useState(1);const steps=useMemo(()=>[{id:1,title:"Mensagem de boas-vindas",type:"Mensagem"},{id:2,title:"Menu principal",type:"Opções"},{id:3,title:"Consultar serviços",type:"Mensagem"},{id:4,title:"Falar com atendente",type:"Transferência"}],[]);return <div className="modal-backdrop"><section className="flow-modal"><header><button className="icon-btn" onClick={onClose}><X/></button><div><strong>Atendimento principal</strong><small>Editor de fluxo</small></div><span className="status-pill active">Salvo</span><button className="primary" onClick={onSave}>Salvar e publicar</button></header><div className="flow-body"><aside><h3>Etapas do fluxo</h3>{steps.map(s=><button className={step===s.id?"active":""} key={s.id} onClick={()=>setStep(s.id)}><span>{s.id}</span><div><strong>{s.title}</strong><small>{s.type}</small></div></button>)}<button className="add-step"><Plus/>Adicionar etapa</button></aside><main><div className="flow-path"><span>Início</span><i/><article><small>ETAPA {step}</small><h2>{steps[step-1].title}</h2><p>{step===1?"Olá! Bem-vindo à Barbearia Central 👋 Como podemos ajudar?":step===2?"1. Agendar horário\n2. Serviços e preços\n3. Horários\n4. Falar com atendente":step===3?"Corte: R$ 40\nBarba: R$ 30\nCombo: R$ 65":"Um momento! Vou chamar alguém da nossa equipe para continuar o atendimento."}</p></article><i/><span>Próxima etapa</span></div></main><aside className="flow-config"><h3>Configurar etapa</h3><label>Nome da etapa<input defaultValue={steps[step-1].title}/></label><label>Mensagem<textarea defaultValue={step===1?"Olá! Bem-vindo à Barbearia Central. Como podemos ajudar?":"Personalize aqui o conteúdo desta etapa."}/></label><label>Próxima ação<select defaultValue="next"><option value="next">Ir para próxima etapa</option><option>Transferir para atendente</option><option>Encerrar conversa</option></select></label></aside></div></section></div>}
+function Avatar({text}:{text:string}){return <span className="avatar">{text}</span>}
