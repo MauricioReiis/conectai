@@ -5,7 +5,7 @@ import {
   Activity, Bell, Bot, Building2, CalendarClock, Check, CheckCircle2, ChevronDown,
   ChevronLeft, CircleHelp, Clock3, ContactRound, Eye, EyeOff, FileText, Filter,
   LayoutDashboard, LockKeyhole, LogOut, Mail, Menu, MessageCircle, MessagesSquare,
-  MoreHorizontal, Paperclip, Pencil, Phone, Plus, Search, Send, Settings, ShieldCheck,
+  Moon, MoreHorizontal, Paperclip, Pencil, Phone, Plus, Search, Send, Settings, ShieldCheck, Sun,
   Smile, Sparkles, Tag, UserCheck, Users, WandSparkles, X
 } from "lucide-react";
 
@@ -38,6 +38,7 @@ const initialMessages: Record<number,ChatMessage[]> = {
 export default function Home(){
   const [signedIn,setSignedIn]=useState(false); const [page,setPage]=useState<PageKey>("overview");
   const [mobileMenu,setMobileMenu]=useState(false); const [toast,setToast]=useState("");
+  const [theme,setTheme]=useState<"light"|"dark">("light");
   const [conversations,setConversations]=useState(initialConversations); const [messages,setMessages]=useState(initialMessages);
   const [selectedId,setSelectedId]=useState(1); const [editorOpen,setEditorOpen]=useState(false);
   const selected=conversations.find(c=>c.id===selectedId)!;
@@ -46,7 +47,7 @@ export default function Home(){
   function takeConversation(){setConversations(v=>v.map(c=>c.id===selectedId?{...c,status:"human",unread:0}:c));notify("Atendimento assumido por você")}
   function sendMessage(text:string){const clean=text.trim();if(!clean)return;setMessages(v=>({...v,[selectedId]:[...(v[selectedId]||[]),{id:Date.now(),from:"agent",text:clean,time:"Agora"}]}));setConversations(v=>v.map(c=>c.id===selectedId?{...c,message:clean,time:"Agora",status:"human"}:c))}
   if(!signedIn)return <Login onLogin={()=>setSignedIn(true)}/>;
-  return <div className="app-shell">
+  return <div className="app-shell" data-theme={theme}>
     <aside className={`sidebar ${mobileMenu?"sidebar-open":""}`}>
       <div className="brand"><span className="brand-mark"><MessageCircle/></span>Conectaí<button className="icon-btn mobile-close" onClick={()=>setMobileMenu(false)} aria-label="Fechar menu"><X/></button></div>
       <button className="workspace"><span>BC</span><div><strong>Barbearia Central</strong><small>Atendimento ativo</small></div><ChevronDown/></button>
@@ -56,7 +57,7 @@ export default function Home(){
     </aside>
     {mobileMenu&&<button className="backdrop" onClick={()=>setMobileMenu(false)} aria-label="Fechar menu"/>}
     <section className="main-area">
-      <header className="topbar"><button className="icon-btn mobile-menu" onClick={()=>setMobileMenu(true)}><Menu/></button><label className="global-search"><Search/><input placeholder="Buscar na Conectaí"/><kbd>Ctrl K</kbd></label><div><button className="icon-btn bell"><Bell/><i/></button><span className="top-avatar">MR</span></div></header>
+      <header className="topbar"><button className="icon-btn mobile-menu" onClick={()=>setMobileMenu(true)}><Menu/></button><label className="global-search"><Search/><input placeholder="Buscar na Conectaí"/><kbd>Ctrl K</kbd></label><div><button className="icon-btn theme-toggle" onClick={()=>setTheme(theme==="light"?"dark":"light")} aria-label={theme==="light"?"Ativar tema escuro":"Ativar tema claro"}>{theme==="light"?<Moon/>:<Sun/>}</button><button className="icon-btn bell"><Bell/><i/></button><span className="top-avatar">MR</span></div></header>
       <main className={page==="conversations"?"content conversation-content":"content"}>
         {page==="overview"&&<Overview onNavigate={navigate}/>} {page==="conversations"&&<Inbox conversations={conversations} selected={selected} messages={messages[selectedId]||[]} onSelect={id=>{setSelectedId(id);setConversations(v=>v.map(c=>c.id===id?{...c,unread:0}:c))}} onTake={takeConversation} onSend={sendMessage} onReturn={()=>{setConversations(v=>v.map(c=>c.id===selectedId?{...c,status:"bot"}:c));notify("Conversa devolvida ao bot")}}/>}
         {page==="contacts"&&<Contacts onNotify={notify}/>} {page==="bots"&&<Bots onEdit={()=>setEditorOpen(true)} onNotify={notify}/>} {page==="team"&&<Team onNotify={notify}/>} {page==="business"&&<Business onNotify={notify}/>} {page==="settings"&&<SettingsPage onNotify={notify}/>} 
